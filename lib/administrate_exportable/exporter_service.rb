@@ -2,13 +2,15 @@ require 'csv'
 
 module AdministrateExportable
   class ExporterService
-    def self.csv(dashboard, resource_class)
-      new(dashboard, resource_class).csv
+    def self.csv(dashboard, resource_class, start_date, end_date)
+      new(dashboard, resource_class, start_date, end_date).csv
     end
 
-    def initialize(dashboard, resource_class)
+    def initialize(dashboard, resource_class, start_date, end_date)
       @dashboard = dashboard
       @resource_class = resource_class
+      @start_date = start_date
+      @end_date = end_date
     end
 
     def csv
@@ -26,7 +28,7 @@ module AdministrateExportable
 
     private
 
-    attr_reader :dashboard, :resource_class, :sanitizer
+    attr_reader :dashboard, :resource_class, :sanitizer, :start_date, :end_date
 
     def record_attribute(record, attribute_key, attribute_type)
       field = attribute_type.new(attribute_key, record.send(attribute_key), 'index', resource: record)
@@ -80,7 +82,11 @@ module AdministrateExportable
     end
 
     def collection
-      relation = resource_class.default_scoped
+      if start_date && end_date
+        relation = resource_class.where('created_at >= ? AND created_at <= ?', start_date, end_date)
+      else
+        relation = resource_class.default_scoped
+      end
       resource_includes = dashboard.association_includes
 
       return relation if resource_includes.empty?
